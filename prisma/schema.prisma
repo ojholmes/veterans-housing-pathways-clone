@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Navigator {
+  id        Int      @id @default(autoincrement())
+  fullName  String
+  email     String   @unique
+  phone     String?
+  clients   Client[]
+  createdAt DateTime @default(now())
+}
+
+model Client {
+  id                 Int           @id @default(autoincrement())
+  fullName           String
+  status             ClientStatus  @default(ACTIVE)
+  housingSituation   String?
+  phone              String?
+  email              String?
+  assignedNavigator  Navigator?    @relation(fields: [assignedNavigatorId], references: [id])
+  assignedNavigatorId Int?
+  interactions       Interaction[]
+  createdAt          DateTime      @default(now())
+}
+
+enum ClientStatus {
+  ACTIVE
+  HOUSED
+  WAITLIST
+}
+
+model Interaction {
+  id            Int      @id @default(autoincrement())
+  client        Client   @relation(fields: [clientId], references: [id])
+  clientId      Int
+  dateTime      DateTime @default(now())
+  contactType   String
+  actor         InteractionActor @default(NAVIGATOR)
+  landlord      Landlord? @relation(fields: [landlordId], references: [id])
+  landlordId    Int?
+  serviceType   String   // store as comma-separated for multi-select; consider normalizing later
+  durationMins  Int?
+  progressSummary String?
+  aiSummary     String?  // AI-powered summary field
+  createdAt     DateTime @default(now())
+}
+
+model Landlord {
+  id            Int      @id @default(autoincrement())
+  propertyName  String
+  contactPerson String?
+  phone         String?
+  acceptsVouchers Boolean @default(false)
+  createdAt     DateTime @default(now())
+}
+
+model Placement {
+  id Int @id @default(autoincrement())
+  client Client @relation(fields: [clientId], references: [id])
+  clientId Int
+  landlord Landlord @relation(fields: [landlordId], references: [id])
+  landlordId Int
+  leaseStart DateTime
+  leaseEnd DateTime?
+  createdAt DateTime @default(now())
+}
+
+model Template {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique
+  subject    String?
+  html       String
+  isActive   Boolean   @default(true)
+  createdBy  Navigator? @relation(fields: [createdById], references: [id])
+  createdById Int?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+enum InteractionActor {
+  NAVIGATOR
+  CLIENT
+  LANDLORD
+}
